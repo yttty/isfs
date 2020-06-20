@@ -31,7 +31,6 @@ apt-get install gcc make fuse libfuse-dev pkg-config
 
 The simplest way is to type ```make```:
 ```bash
-cd code_dir
 make # build the isfs binary
 ```
 
@@ -71,11 +70,13 @@ The ```test-big.py``` script will test the support of big file and big dir.
 python3 test-big.py /mnt/isfs
 ```
 
-## Disk Layout of the ISFS
-The first page (page 0, block 0-7) is empty and unused. The second page (page 1, block 8-15) is the superblock area, including superblock metadata and another copy, see below. Page 2-49 is the ibmap, page 50-97 is the dbmap. Each bit in ibmap or dbmap is used to specify the corresponding inode or data block is in use or not. Page 98-99 is the checksum for ibmap and dbmap. Page 100-12,387 (12,288 pages in total) is the inode table area, each inode requires 8 integers (32 bytes). There are 1,572,864 inodes in total. Page 12,388-208,995 (196,608 pages in total) is the data region. The size of data region is 196608 pages = 1,572,864 blocks = 805,306,368 bytes = 768 MB Each inode have two direct data block pointers, one indirect pointer and one double indirect pointer. Each block is 512 bytes so the max size of a big file is (2+128+128^2) * 512 bytes. For directory's data node (files), each entry of file is 32 bytes, the bytes[0-11] are file name, bytes[12-15] are inumber of file (unsigned int) the last bit of byte[31] are the indicator whether the entry is used. The max number of file in a directory is (2+128+128^2) * 512/32. 
 
+## Technical Details
 
-## About the buffer
+### Disk Layout of the ISFS
+The first page (page 0, block 0-7) is empty and unused. The second page (page 1, block 8-15) is the superblock area, including superblock metadata and another copy, see below. Page 2-49 is the ibmap, page 50-97 is the dbmap. Each bit in ibmap or dbmap is used to specify the corresponding inode or data block is in use or not. Page 98-99 is the checksum for ibmap and dbmap. Page 100-12,387 (12,288 pages in total) is the inode table area, each inode requires 8 integers (32 bytes). There are 1,572,864 inodes in total. Page 12,388-208,995 (196,608 pages in total) is the data region. The size of data region is 196608 pages = 1,572,864 blocks = 805,306,368 bytes = 768 MB Each inode have two direct data block pointers, one indirect pointer and one double indirect pointer. Each block is 512 bytes so the max size of a big file is (2+128+128^2) * 512 bytes. For directory's data node (files), each entry of file is 32 bytes, the bytes[0-11] are file name, bytes[12-15] are inumber of file (unsigned int) the last bit of byte[31] are the indicator whether the entry is used. The max number of file in a directory is (2+128+128^2) * 512/32.
+
+### About the buffer
 The buffer cache use a double-linked list to track the order of usage and a hash table to accelerate search.
 The size of buffer cache is 10446 page * 8 block/page.
 The size of hash table is the nearest prime number which is larger than sqrt(SIZE_BUFFER_CACHE), so the theoretical length of each entry of hash table will be smaller than sqrt(SIZE_BUFFER_CACHE).
